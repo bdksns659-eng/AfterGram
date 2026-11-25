@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "937901730325",
+    "project_id": "aftergram",
+    "storage_bucket": "aftergram.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:937901730325:android:17ab7a4817e7996538fc1c",
+        "android_client_info": {
+          "package_name": "com.aftergram.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAG1rsmhWp2O3VotlsYCLEtZxr5DqdxDDM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
