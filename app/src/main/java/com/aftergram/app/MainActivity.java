@@ -93,32 +93,51 @@ public class MainActivity extends Activity {
         return e;
     }
 
+
     void showWelcome() {
         screen("AfterGram");
-        title("Добро пожаловать!");
-        item("Общайся без границ",
-             "Сообщения, звонки, истории и подарки в одном приложении.", null);
+        title("✈");
+        title("AfterGram");
+        item("Добро пожаловать!",
+             "Общайся с друзьями и близкими где угодно.", null);
         button("НАЧАТЬ ОБЩЕНИЕ", () -> showPhoneScreen());
     }
 
     void showPhoneScreen() {
         screen("Ваш номер телефона");
-        item("Введите номер", "Мы отправим SMS с кодом подтверждения.", null);
-
+        item("Выберите страну и введите номер телефона.", "", null);
         countrySpinner = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-            this, android.R.layout.simple_spinner_item, countryNames
-        );
-        adapter.setDropDownViewResource(
-            android.R.layout.simple_spinner_dropdown_item
-        );
+            this, android.R.layout.simple_spinner_dropdown_item, countryNames);
         countrySpinner.setAdapter(adapter);
         content.addView(countrySpinner);
-
         phoneInput = authInput("Номер телефона");
-        phoneInput.setInputType(3);
-
         button("ПРОДОЛЖИТЬ", () -> sendPhoneCode());
+    }
+
+    void showCodeScreen() {
+        screen("Код подтверждения");
+        item("Введите код из SMS.", "", null);
+        codeInput = authInput("Код из SMS");
+        button("ПРОДОЛЖИТЬ", () -> {
+            String code = codeInput.getText().toString().trim();
+            if (verificationId == null || code.length() != 6) {
+                Toast.makeText(this, "Введите код из 6 цифр", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            PhoneAuthCredential credential =
+                PhoneAuthProvider.getCredential(verificationId, code);
+            signInWithCredential(credential);
+        });
+        button("ИЗМЕНИТЬ НОМЕР", () -> showPhoneScreen());
+    }
+
+    void showProfileSetup() {
+        screen("Ваше имя");
+        item("Как вас зовут?", "Укажите имя для профиля.", null);
+        firstNameInput = authInput("Имя");
+        lastNameInput = authInput("Фамилия (необязательно)");
+        button("ПРОДОЛЖИТЬ", () -> saveProfile());
     }
 
     void sendPhoneCode() {
