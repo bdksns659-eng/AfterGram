@@ -94,7 +94,6 @@ public class MainActivity extends Activity {
 
     void showTab(String tab) {
         currentTab = tab;
-        showApp();
         content.removeAllViews();
 
         switch (tab) {
