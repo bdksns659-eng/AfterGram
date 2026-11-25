@@ -11,31 +11,28 @@ import android.widget.*;
 
 public class MainActivity extends Activity {
 
-    int bg = Color.rgb(16, 18, 27);
-    int panel = Color.rgb(25, 28, 40);
+    int bg = Color.rgb(15, 19, 29);
+    int panel = Color.rgb(27, 34, 49);
     int blue = Color.rgb(65, 145, 255);
-    LinearLayout root, content, nav;
+    int white = Color.WHITE;
+    LinearLayout root, content, navigation;
     String currentTab = "Чаты";
 
-    String[] names = {"Alex", "Maria", "AfterGram News", "David"};
-    String[] messages = {"Привет! Как дела?", "Отправила фотографию", "Добро пожаловать в AfterGram!", "Увидимся завтра"};
-    String[] times = {"18:20", "17:45", "16:30", "15:12"};
-    String[] letters = {"A", "M", "N", "D"};
+    String[] tabs = {
+        "Чаты", "Контакты", "Звонки", "Истории",
+        "Подарки", "Звёзды", "Профиль", "Настройки"
+    };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onCreate(Bundle state) {
+        super.onCreate(state);
         getWindow().setStatusBarColor(bg);
         getWindow().setNavigationBarColor(bg);
-        getWindow().setSoftInputMode(16);
-        showHome();
+        showApp();
     }
 
-    GradientDrawable shape(int color, int radius) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(color);
-        d.setCornerRadius(radius);
-        return d;
+    int dp(int n) {
+        return (int)(n * getResources().getDisplayMetrics().density);
     }
 
     TextView text(String value, int size, int color) {
@@ -43,203 +40,205 @@ public class MainActivity extends Activity {
         t.setText(value);
         t.setTextSize(size);
         t.setTextColor(color);
+        t.setPadding(dp(12), dp(10), dp(12), dp(10));
         return t;
     }
 
-    void setup(String title) {
+    GradientDrawable shape(int color, int radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(radius));
+        return d;
+    }
+
+    void showApp() {
         root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(bg);
 
-        TextView header = text(title, 25, Color.WHITE);
+        TextView header = text("AfterGram", 25, white);
         header.setTypeface(null, Typeface.BOLD);
-        header.setPadding(20, 22, 12, 18);
+        header.setPadding(dp(18), dp(18), dp(12), dp(12));
         root.addView(header);
+
+        HorizontalScrollView scroll = new HorizontalScrollView(this);
+        scroll.setHorizontalScrollBarEnabled(false);
+        navigation = new LinearLayout(this);
+        navigation.setPadding(dp(8), 0, dp(8), dp(8));
+
+        for (String tab : tabs) {
+            TextView item = text(tab, 14,
+                currentTab.equals(tab) ? blue : Color.LTGRAY);
+            item.setBackground(shape(panel, 20));
+            LinearLayout.LayoutParams p =
+                new LinearLayout.LayoutParams(-2, -2);
+            p.setMargins(dp(4), dp(4), dp(4), dp(4));
+            navigation.addView(item, p);
+            item.setOnClickListener(v -> showTab(tab));
+        }
+
+        scroll.addView(navigation);
+        root.addView(scroll);
 
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        root.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
+        content.setPadding(dp(12), dp(8), dp(12), dp(12));
 
-        nav = new LinearLayout(this);
-        nav.setBackgroundColor(panel);
-        nav.setGravity(Gravity.CENTER);
-        String[] tabs = {"Чаты", "Контакты", "Звонки", "Настройки"};
+        ScrollView body = new ScrollView(this);
+        body.addView(content);
+        root.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        for (String tab : tabs) {
-            TextView button = text(tab, 12, tab.equals(currentTab) ? blue : Color.LTGRAY);
-            button.setGravity(Gravity.CENTER);
-            button.setPadding(2, 17, 2, 17);
-            button.setOnClickListener(v -> {
-                currentTab = tab;
-                showHome();
-            });
-            nav.addView(button, new LinearLayout.LayoutParams(0, -2, 1));
-        }
-
-        root.addView(nav);
         setContentView(root);
+        showTab(currentTab);
     }
 
-    void showHome() {
-        setup(currentTab);
+    void showTab(String tab) {
+        currentTab = tab;
+        showApp();
+        content.removeAllViews();
 
-        if (currentTab.equals("Чаты")) showChats();
-        else if (currentTab.equals("Контакты")) showContacts();
-        else if (currentTab.equals("Звонки")) showCalls();
-        else showSettings();
+        switch (tab) {
+            case "Чаты": chats(); break;
+            case "Контакты": contacts(); break;
+            case "Звонки": calls(); break;
+            case "Истории": stories(); break;
+            case "Подарки": gifts(); break;
+            case "Звёзды": stars(); break;
+            case "Профиль": profile(); break;
+            case "Настройки": settings(); break;
+        }
     }
 
-    void showChats() {
+    void title(String value) {
+        TextView t = text(value, 22, white);
+        t.setTypeface(null, Typeface.BOLD);
+        content.addView(t);
+    }
+
+    void item(String name, String description, Runnable action) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackground(shape(panel, 16));
+        card.setPadding(dp(8), dp(5), dp(8), dp(5));
+
+        TextView a = text(name, 17, white);
+        a.setTypeface(null, Typeface.BOLD);
+        TextView b = text(description, 13, Color.LTGRAY);
+
+        card.addView(a);
+        card.addView(b);
+
+        LinearLayout.LayoutParams p =
+            new LinearLayout.LayoutParams(-1, -2);
+        p.setMargins(0, dp(5), 0, dp(5));
+        content.addView(card, p);
+
+        if (action != null) {
+            card.setOnClickListener(v -> action.run());
+        }
+    }
+
+    void button(String label, Runnable action) {
+        TextView b = text(label, 15, white);
+        b.setGravity(Gravity.CENTER);
+        b.setBackground(shape(blue, 14));
+        LinearLayout.LayoutParams p =
+            new LinearLayout.LayoutParams(-1, -2);
+        p.setMargins(0, dp(7), 0, dp(7));
+        content.addView(b, p);
+        b.setOnClickListener(v -> action.run());
+    }
+
+    void chats() {
+        title("Сообщения");
+
         EditText search = new EditText(this);
         search.setSingleLine(true);
-        search.setHint("Поиск");
-        search.setTextColor(Color.WHITE);
+        search.setHint("Поиск сообщений и людей");
         search.setHintTextColor(Color.GRAY);
-        search.setPadding(16, 4, 16, 4);
-        search.setBackground(shape(panel, 24));
+        search.setTextColor(white);
+        search.setBackground(shape(panel, 14));
+        content.addView(search);
 
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, 50);
-        sp.setMargins(16, 0, 16, 14);
-        content.addView(search, sp);
+        item("Alex", "Привет! Как дела?", null);
+        item("AfterGram News", "Новости приложения", null);
+        item("Друзья", "Последние сообщения группы", null);
+        item("Избранное", "Сохранённые сообщения", null);
+        item("Рабочая группа", "Добро пожаловать!", null);
 
-        ScrollView scroll = new ScrollView(this);
-        LinearLayout list = new LinearLayout(this);
-        list.setOrientation(LinearLayout.VERTICAL);
-        scroll.addView(list);
-        content.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-
-        for (int i = 0; i < names.length; i++) {
-            final int index = i;
-            addChat(list, names[i], messages[i], times[i], letters[i], () -> openChat(index));
-        }
-
-        search.addTextChangedListener(new android.text.TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                list.removeAllViews();
-                for (int i = 0; i < names.length; i++) {
-                    if (names[i].toLowerCase().contains(s.toString().toLowerCase())) {
-                        final int index = i;
-                        addChat(list, names[i], messages[i], times[i], letters[i], () -> openChat(index));
-                    }
-                }
-            }
-            public void afterTextChanged(android.text.Editable e) {}
-        });
+        button("+ Новый чат", () -> contacts());
+        button("+ Создать группу", () ->
+            item("Новая группа", "Создание группы будет подключено позже", null));
+        button("+ Создать канал", () ->
+            item("Новый канал", "Создание канала будет подключено позже", null));
     }
 
-    void addChat(LinearLayout list, String name, String message,
-                 String time, String letter, Runnable action) {
-
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(16, 12, 16, 12);
-
-        TextView avatar = text(letter, 23, Color.WHITE);
-        avatar.setGravity(Gravity.CENTER);
-        avatar.setBackground(shape(blue, 100));
-        row.addView(avatar, new LinearLayout.LayoutParams(52, 52));
-
-        LinearLayout info = new LinearLayout(this);
-        info.setOrientation(LinearLayout.VERTICAL);
-        info.setPadding(14, 0, 0, 0);
-
-        TextView n = text(name, 17, Color.WHITE);
-        n.setTypeface(null, Typeface.BOLD);
-        TextView m = text(message, 14, Color.LTGRAY);
-        info.addView(n);
-        info.addView(m);
-
-        row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(text(time, 12, Color.GRAY));
-
-        row.setOnClickListener(v -> action.run());
-        list.addView(row);
+    void contacts() {
+        title("Контакты");
+        item("Поиск пользователей", "Найти человека по имени или ID", null);
+        item("Alex", "В сети", null);
+        item("Daniel", "Был недавно", null);
+        item("Max", "Был недавно", null);
+        button("+ Добавить контакт", () ->
+            item("Добавление контакта", "Поиск и добавление будут подключены к серверу", null));
     }
 
-    void openChat(int index) {
-        setup(names[index]);
-
-        TextView back = text("‹  Все чаты", 16, blue);
-        back.setPadding(16, 10, 10, 10);
-        back.setOnClickListener(v -> showHome());
-        content.addView(back);
-
-        ScrollView scroll = new ScrollView(this);
-        LinearLayout conversation = new LinearLayout(this);
-        conversation.setOrientation(LinearLayout.VERTICAL);
-        conversation.setPadding(12, 12, 12, 12);
-        scroll.addView(conversation);
-        content.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
-
-        addMessage(conversation, messages[index], false);
-
-        LinearLayout composer = new LinearLayout(this);
-        composer.setPadding(10, 8, 10, 8);
-        composer.setGravity(Gravity.CENTER_VERTICAL);
-
-        EditText input = new EditText(this);
-        input.setHint("Сообщение...");
-        input.setTextColor(Color.WHITE);
-        input.setHintTextColor(Color.GRAY);
-        input.setBackground(shape(panel, 24));
-        composer.addView(input, new LinearLayout.LayoutParams(0, 48, 1));
-
-        TextView send = text("➤", 24, blue);
-        send.setGravity(Gravity.CENTER);
-        send.setPadding(15, 5, 10, 5);
-        composer.addView(send);
-
-        send.setOnClickListener(v -> {
-            String value = input.getText().toString().trim();
-            if (!value.isEmpty()) {
-                addMessage(conversation, value, true);
-                input.setText("");
-                scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
-            }
-        });
-
-        content.addView(composer);
+    void calls() {
+        title("Звонки");
+        button("📞 Новый звонок", () ->
+            item("Звонки", "Для настоящих звонков потребуется серверная связь", null));
+        item("Alex", "Входящий звонок", null);
+        item("Daniel", "Исходящий звонок", null);
+        item("Max", "История вызовов", null);
     }
 
-    void addMessage(LinearLayout list, String value, boolean own) {
-        TextView bubble = text(value, 16, Color.WHITE);
-        bubble.setPadding(14, 10, 14, 10);
-        bubble.setBackground(shape(own ? Color.rgb(43, 100, 180) : panel, 20));
-
-        LinearLayout line = new LinearLayout(this);
-        line.setGravity(own ? Gravity.RIGHT : Gravity.LEFT);
-        line.setPadding(4, 7, 4, 7);
-        line.addView(bubble);
-        list.addView(line);
+    void stories() {
+        title("Истории");
+        button("+ Добавить историю", () ->
+            item("Новая история", "Публикация фото и видео будет подключена позже", null));
+        item("Мои истории", "Здесь будут твои публикации", null);
+        item("Истории друзей", "Здесь будут истории контактов", null);
     }
 
-    void showContacts() {
-        String[] contacts = {"Alex", "Maria", "David", "AfterGram News"};
-        for (String name : contacts) {
-            TextView item = text("●   " + name, 18, Color.WHITE);
-            item.setPadding(20, 18, 10, 18);
-            content.addView(item);
-        }
+    void gifts() {
+        title("Подарки 🎁");
+        item("🎁 Подарок", "Виртуальный подарок", null);
+        item("🌹 Роза", "Коллекция подарков", null);
+        item("⭐ Звёздный подарок", "Подарок за звёзды", null);
+        item("💎 Редкий подарок", "Коллекционный предмет", null);
+        button("Моя коллекция", () ->
+            item("Коллекция", "Здесь будут полученные подарки", null));
+        button("Отправить подарок", () ->
+            item("Отправка подарка", "Выбор получателя будет подключён позже", null));
     }
 
-    void showCalls() {
-        TextView info = text("Звонки\n\nЗдесь будет история аудио- и видеозвонков.", 18, Color.LTGRAY);
-        info.setGravity(Gravity.CENTER);
-        content.addView(info, new LinearLayout.LayoutParams(-1, -1));
+    void stars() {
+        title("Звёзды ⭐");
+        item("⭐ 0", "Демонстрационный баланс AfterGram Stars", null);
+        button("Пополнить баланс", () ->
+            item("Пополнение", "Реальные платежи пока не подключены", null));
+        button("История операций", () ->
+            item("История", "Здесь будут операции со звёздами", null));
+        button("Отправить звёзды", () ->
+            item("Перевод", "Переводы будут доступны после подключения сервера", null));
     }
 
-    void showSettings() {
-        String[] options = {"Мой профиль", "Уведомления", "Конфиденциальность", "Оформление", "Язык", "О приложении"};
-        for (String option : options) {
-            TextView item = text("⚙   " + option, 17, Color.WHITE);
-            item.setPadding(20, 18, 10, 18);
-            content.addView(item);
-        }
+    void profile() {
+        title("Мой профиль");
+        item("👤 Пользователь AfterGram", "ID: ещё не назначен", null);
+        item("Имя", "Не указано", null);
+        item("О себе", "Добавь описание профиля", null);
+        button("Изменить профиль", () ->
+            item("Редактирование", "Редактирование профиля будет добавлено позже", null));
     }
 
-    @Override
-    public void onBackPressed() {
-        showHome();
+    void settings() {
+        title("Настройки");
+        item("Уведомления", "Звуки и сообщения", null);
+        item("Приватность", "Кто может видеть твой профиль", null);
+        item("Безопасность", "Защита аккаунта", null);
+        item("Оформление", "Тема и внешний вид", null);
+        item("Язык", "Русский", null);
+        item("AfterGram", "Версия 1.0", null);
     }
 }
