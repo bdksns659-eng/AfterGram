@@ -94,50 +94,165 @@ public class MainActivity extends Activity {
     }
 
 
+
+    void authPage() {
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(24), dp(28), dp(24), dp(24));
+        root.setBackgroundColor(Color.WHITE);
+
+        content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(content);
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        getWindow().setStatusBarColor(Color.WHITE);
+        getWindow().setNavigationBarColor(Color.WHITE);
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        setContentView(root);
+    }
+
+    void authLabel(String value, int size, int color, boolean bold) {
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(dp(8), dp(12), dp(8), dp(12));
+        if (bold) t.setTypeface(null, Typeface.BOLD);
+        content.addView(t);
+    }
+
+    EditText authField(String hint, int type) {
+        EditText e = new EditText(this);
+        e.setSingleLine(true);
+        e.setHint(hint);
+        e.setTextColor(Color.BLACK);
+        e.setHintTextColor(Color.GRAY);
+        e.setTextSize(17);
+        e.setInputType(type);
+        e.setPadding(dp(12), dp(12), dp(12), dp(12));
+
+        LinearLayout.LayoutParams lp =
+            new LinearLayout.LayoutParams(-1, -2);
+        lp.setMargins(0, dp(8), 0, dp(8));
+        content.addView(e, lp);
+        return e;
+    }
+
+    void authButton(String label, Runnable action) {
+        TextView b = new TextView(this);
+        b.setText(label);
+        b.setTextSize(15);
+        b.setTextColor(Color.WHITE);
+        b.setGravity(Gravity.CENTER);
+        b.setTypeface(null, Typeface.BOLD);
+        b.setPadding(dp(16), dp(15), dp(16), dp(15));
+        b.setBackground(shape(Color.rgb(51, 144, 236), 12));
+
+        LinearLayout.LayoutParams lp =
+            new LinearLayout.LayoutParams(-1, -2);
+        lp.setMargins(0, dp(20), 0, dp(10));
+        content.addView(b, lp);
+        b.setOnClickListener(v -> action.run());
+    }
+
     void showWelcome() {
-        screen("AfterGram");
-        title("✈");
-        title("AfterGram");
-        item("Добро пожаловать!",
-             "Общайся с друзьями и близкими где угодно.", null);
-        button("НАЧАТЬ ОБЩЕНИЕ", () -> showPhoneScreen());
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setGravity(Gravity.CENTER);
+        root.setPadding(dp(28), dp(30), dp(28), dp(30));
+        root.setBackgroundColor(Color.rgb(51, 144, 236));
+
+        TextView logo = new TextView(this);
+        logo.setText("✈");
+        logo.setTextSize(76);
+        logo.setTextColor(Color.WHITE);
+        logo.setGravity(Gravity.CENTER);
+        root.addView(logo);
+
+        TextView name = new TextView(this);
+        name.setText("AfterGram");
+        name.setTextSize(32);
+        name.setTextColor(Color.WHITE);
+        name.setTypeface(null, Typeface.BOLD);
+        name.setGravity(Gravity.CENTER);
+        root.addView(name);
+
+        TextView desc = new TextView(this);
+        desc.setText("Общайтесь с друзьями и близкими");
+        desc.setTextSize(16);
+        desc.setTextColor(Color.WHITE);
+        desc.setGravity(Gravity.CENTER);
+        desc.setPadding(0, dp(12), 0, dp(40));
+        root.addView(desc);
+
+        TextView start = new TextView(this);
+        start.setText("НАЧАТЬ ОБЩЕНИЕ");
+        start.setTextSize(15);
+        start.setTextColor(Color.rgb(51, 144, 236));
+        start.setTypeface(null, Typeface.BOLD);
+        start.setGravity(Gravity.CENTER);
+        start.setPadding(dp(20), dp(16), dp(20), dp(16));
+        start.setBackground(shape(Color.WHITE, 12));
+        root.addView(start, new LinearLayout.LayoutParams(-1, -2));
+        start.setOnClickListener(v -> showPhoneScreen());
+
+        getWindow().setStatusBarColor(Color.rgb(51, 144, 236));
+        getWindow().setNavigationBarColor(Color.rgb(51, 144, 236));
+        getWindow().getDecorView().setSystemUiVisibility(0);
+        setContentView(root);
     }
 
     void showPhoneScreen() {
-        screen("Ваш номер телефона");
-        item("Выберите страну и введите номер телефона.", "", null);
+        authPage();
+        authLabel("Ваш номер телефона", 25, Color.BLACK, true);
+        authLabel("Пожалуйста, подтвердите код страны и введите свой номер телефона.",
+            15, Color.DKGRAY, false);
+
         countrySpinner = new Spinner(this);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
             this, android.R.layout.simple_spinner_dropdown_item, countryNames);
         countrySpinner.setAdapter(adapter);
         content.addView(countrySpinner);
-        phoneInput = authInput("Номер телефона");
-        button("ПРОДОЛЖИТЬ", () -> sendPhoneCode());
+
+        phoneInput = authField("Номер телефона", 3);
+        authButton("ПРОДОЛЖИТЬ", () -> sendPhoneCode());
     }
 
     void showCodeScreen() {
-        screen("Код подтверждения");
-        item("Введите код из SMS.", "", null);
-        codeInput = authInput("Код из SMS");
-        button("ПРОДОЛЖИТЬ", () -> {
+        authPage();
+        authLabel("Код подтверждения", 25, Color.BLACK, true);
+        authLabel("Введите код, который мы отправили вам по SMS.",
+            15, Color.DKGRAY, false);
+
+        codeInput = authField("Код из SMS", 2);
+        authButton("ПРОДОЛЖИТЬ", () -> {
             String code = codeInput.getText().toString().trim();
             if (verificationId == null || code.length() != 6) {
-                Toast.makeText(this, "Введите код из 6 цифр", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Введите код из 6 цифр",
+                    Toast.LENGTH_SHORT).show();
                 return;
             }
             PhoneAuthCredential credential =
                 PhoneAuthProvider.getCredential(verificationId, code);
             signInWithCredential(credential);
         });
-        button("ИЗМЕНИТЬ НОМЕР", () -> showPhoneScreen());
+        authButton("ИЗМЕНИТЬ НОМЕР", () -> showPhoneScreen());
     }
 
     void showProfileSetup() {
-        screen("Ваше имя");
-        item("Как вас зовут?", "Укажите имя для профиля.", null);
-        firstNameInput = authInput("Имя");
-        lastNameInput = authInput("Фамилия (необязательно)");
-        button("ПРОДОЛЖИТЬ", () -> saveProfile());
+        authPage();
+        authLabel("Ваше имя", 25, Color.BLACK, true);
+        authLabel("Укажите имя и фамилию для своего профиля.",
+            15, Color.DKGRAY, false);
+
+        firstNameInput = authField("Имя", 1);
+        lastNameInput = authField("Фамилия", 1);
+        authButton("ПРОДОЛЖИТЬ", () -> saveProfile());
     }
 
     void sendPhoneCode() {
@@ -186,29 +301,6 @@ public class MainActivity extends Activity {
         Toast.makeText(this, "Отправляем SMS...", Toast.LENGTH_SHORT).show();
     }
 
-    void showCodeScreen() {
-        screen("Подтверждение");
-        item("Введите код из SMS",
-             "Мы отправили код на ваш номер телефона.", null);
-
-        codeInput = authInput("Код подтверждения");
-        codeInput.setInputType(2);
-
-        button("ПОДТВЕРДИТЬ", () -> {
-            String code = codeInput.getText().toString().trim();
-            if (verificationId == null || code.length() != 6) {
-                Toast.makeText(this, "Введите шестизначный код",
-                    Toast.LENGTH_SHORT).show();
-                return;
-            }
-            PhoneAuthCredential credential =
-                PhoneAuthProvider.getCredential(verificationId, code);
-            signInWithCredential(credential);
-        });
-
-        button("Изменить номер", () -> showPhoneScreen());
-    }
-
     void signInWithCredential(PhoneAuthCredential credential) {
         auth.signInWithCredential(credential)
             .addOnCompleteListener(this, task -> {
@@ -243,17 +335,6 @@ public class MainActivity extends Activity {
                 Toast.makeText(this, "Ошибка загрузки профиля: " +
                     e.getMessage(), Toast.LENGTH_LONG).show();
             });
-    }
-
-    void showProfileSetup() {
-        screen("Ваш профиль");
-        item("Как вас зовут?",
-             "Укажите имя, которое увидят другие пользователи.", null);
-
-        firstNameInput = authInput("Имя");
-        lastNameInput = authInput("Фамилия");
-
-        button("СОЗДАТЬ ПРОФИЛЬ", () -> saveProfile());
     }
 
     void saveProfile() {
