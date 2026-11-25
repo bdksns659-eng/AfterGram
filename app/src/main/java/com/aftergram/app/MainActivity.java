@@ -8,6 +8,16 @@ import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
+import com.google.firebase.FirebaseException;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.PhoneAuthOptions;
+import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.firebase.auth.PhoneAuthCredential;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FieldValue;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity {
 
@@ -17,6 +27,18 @@ public class MainActivity extends Activity {
     int white = Color.WHITE;
     LinearLayout root, content, navigation;
     String currentTab = "Чаты";
+
+    FirebaseAuth auth = FirebaseAuth.getInstance();
+    FirebaseFirestore db = FirebaseFirestore.getInstance();
+    String verificationId;
+    EditText phoneInput, codeInput, firstNameInput, lastNameInput;
+    Spinner countrySpinner;
+
+    String[] countryNames = {
+        "Украина (+380)", "Польша (+48)", "Германия (+49)",
+        "США (+1)", "Великобритания (+44)"
+    };
+    String[] countryCodes = {"+380", "+48", "+49", "+1", "+44"};
 
     String[] tabs = {
         "Чаты", "Контакты", "Звонки", "Истории",
@@ -28,7 +50,224 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         getWindow().setStatusBarColor(bg);
         getWindow().setNavigationBarColor(bg);
-        showApp();
+        if (auth.getCurrentUser() == null) {
+            showWelcome();
+        } else {
+            openProfileOrApp();
+        }
+    }
+
+    void screen(String heading) {
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(20), dp(20), dp(20), dp(20));
+        root.setBackgroundColor(bg);
+
+        TextView h = text(heading, 26, white);
+        h.setTypeface(null, Typeface.BOLD);
+        root.addView(h);
+
+        content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(content);
+        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        setContentView(root);
+    }
+
+    EditText authInput(String hint) {
+        EditText e = new EditText(this);
+        e.setSingleLine(true);
+        e.setHint(hint);
+        e.setHintTextColor(Color.GRAY);
+        e.setTextColor(white);
+        e.setPadding(dp(14), dp(12), dp(14), dp(12));
+        e.setBackground(shape(panel, 14));
+
+        LinearLayout.LayoutParams p =
+            new LinearLayout.LayoutParams(-1, -2);
+        p.setMargins(0, dp(8), 0, dp(8));
+        content.addView(e, p);
+        return e;
+    }
+
+    void showWelcome() {
+        screen("AfterGram");
+        title("Добро пожаловать!");
+        item("Общайся без границ",
+             "Сообщения, звонки, истории и подарки в одном приложении.", null);
+        button("НАЧАТЬ ОБЩЕНИЕ", () -> showPhoneScreen());
+    }
+
+    void showPhoneScreen() {
+        screen("Ваш номер телефона");
+        item("Введите номер", "Мы отправим SMS с кодом подтверждения.", null);
+
+        countrySpinner = new Spinner(this);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            this, android.R.layout.simple_spinner_item, countryNames
+        );
+        adapter.setDropDownViewResource(
+            android.R.layout.simple_spinner_dropdown_item
+        );
+        countrySpinner.setAdapter(adapter);
+        content.addView(countrySpinner);
+
+        phoneInput = authInput("Номер телефона");
+        phoneInput.setInputType(3);
+
+        button("ПРОДОЛЖИТЬ", () -> sendPhoneCode());
+    }
+
+    void sendPhoneCode() {
+        String digits = phoneInput.getText().toString()
+            .replaceAll("[^0-9]", "");
+
+        if (digits.startsWith("0")) {
+            digits = digits.substring(1);
+        }
+
+        if (digits.length() < 7) {
+            Toast.makeText(this, "Проверь номер телефона",
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String phone = countryCodes[countrySpinner.getSelectedItemPosition()]
+            + digits;
+
+        PhoneAuthOptions options = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(phone)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(this)
+            .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+                @Override
+                public void onVerificationCompleted(PhoneAuthCredential credential) {
+                    signInWithCredential(credential);
+                }
+
+                @Override
+                public void onVerificationFailed(FirebaseException e) {
+                    Toast.makeText(MainActivity.this,
+                        "Ошибка SMS: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+                }
+
+                @Override
+                public void onCodeSent(String id,
+                    PhoneAuthProvider.ForceResendingToken token) {
+                    verificationId = id;
+                    showCodeScreen();
+                }
+            }).build();
+
+        PhoneAuthProvider.verifyPhoneNumber(options);
+        Toast.makeText(this, "Отправляем SMS...", Toast.LENGTH_SHORT).show();
+    }
+
+    void showCodeScreen() {
+        screen("Подтверждение");
+        item("Введите код из SMS",
+             "Мы отправили код на ваш номер телефона.", null);
+
+        codeInput = authInput("Код подтверждения");
+        codeInput.setInputType(2);
+
+        button("ПОДТВЕРДИТЬ", () -> {
+            String code = codeInput.getText().toString().trim();
+            if (verificationId == null || code.length() != 6) {
+                Toast.makeText(this, "Введите шестизначный код",
+                    Toast.LENGTH_SHORT).show();
+                return;
+            }
+            PhoneAuthCredential credential =
+                PhoneAuthProvider.getCredential(verificationId, code);
+            signInWithCredential(credential);
+        });
+
+        button("Изменить номер", () -> showPhoneScreen());
+    }
+
+    void signInWithCredential(PhoneAuthCredential credential) {
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(this, task -> {
+                if (task.isSuccessful()) {
+                    openProfileOrApp();
+                } else {
+                    Toast.makeText(this, "Не удалось войти: " +
+                        (task.getException() == null ? "ошибка" :
+                        task.getException().getMessage()),
+                        Toast.LENGTH_LONG).show();
+                }
+            });
+    }
+
+    void openProfileOrApp() {
+        if (auth.getCurrentUser() == null) {
+            showWelcome();
+            return;
+        }
+
+        String uid = auth.getCurrentUser().getUid();
+
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener(document -> {
+                if (document.exists()) {
+                    showApp();
+                } else {
+                    showProfileSetup();
+                }
+            })
+            .addOnFailureListener(e -> {
+                Toast.makeText(this, "Ошибка загрузки профиля: " +
+                    e.getMessage(), Toast.LENGTH_LONG).show();
+            });
+    }
+
+    void showProfileSetup() {
+        screen("Ваш профиль");
+        item("Как вас зовут?",
+             "Укажите имя, которое увидят другие пользователи.", null);
+
+        firstNameInput = authInput("Имя");
+        lastNameInput = authInput("Фамилия");
+
+        button("СОЗДАТЬ ПРОФИЛЬ", () -> saveProfile());
+    }
+
+    void saveProfile() {
+        String first = firstNameInput.getText().toString().trim();
+        String last = lastNameInput.getText().toString().trim();
+
+        if (first.isEmpty()) {
+            Toast.makeText(this, "Введите имя",
+                Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (auth.getCurrentUser() == null) return;
+
+        String uid = auth.getCurrentUser().getUid();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("uid", uid);
+        data.put("phoneNumber", auth.getCurrentUser().getPhoneNumber());
+        data.put("firstName", first);
+        data.put("lastName", last);
+        data.put("createdAt", FieldValue.serverTimestamp());
+
+        db.collection("users").document(uid).set(data)
+            .addOnSuccessListener(v -> {
+                Toast.makeText(this, "Профиль создан!",
+                    Toast.LENGTH_SHORT).show();
+                showApp();
+            })
+            .addOnFailureListener(e ->
+                Toast.makeText(this, "Ошибка сохранения: " +
+                    e.getMessage(), Toast.LENGTH_LONG).show()
+            );
     }
 
     int dp(int n) {
